@@ -417,10 +417,17 @@ class CtrlBlockImp(outer: CtrlBlock)(implicit p: Parameters) extends LazyModuleI
   rat.io.debug_fp_rat <> io.debug_fp_rat
 
   // pipeline between decode and rename
+  // TODO: Decode-Rename Diplomacy
   for (i <- 0 until RenameWidth) {
     PipelineConnect(decode.io.out(i), rename.io.in(i), rename.io.in(i).ready,
       stage2Redirect.valid || pendingRedirect)
   }
+  val decodeRenameBuffer = LazyModule(new DecoupledBuffer[CfCtrl])
+  val redirect = LazyModule(new CtrlBlockRedirect)
+
+  decodeRenameBuffer.node := decode.toRenameNode
+  rename.fromDecodeNode := decodeRenameBuffer.node 
+  decodeRenameBuffer.flushNode := redirect.backendNode// stage2Redirect.valid || pendingRedirect
 
   rename.io.redirect <> stage2Redirect
   rename.io.robCommits <> rob.io.commits
